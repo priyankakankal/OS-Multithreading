@@ -14,6 +14,7 @@
 #include <sys/wait.h>
 #include "thread.h"
 
+
 int thread_create(thread_t *t, const thread_attr_t * attr, void * (*start_function)(void *), void *arg) {
 	//one-one and many-one model
 
@@ -64,7 +65,7 @@ int thread_create(thread_t *t, const thread_attr_t * attr, void * (*start_functi
 	*/
 	addthread_l(child_thread);
 
-	tid = clone(fn, stackTop, SIGCHLD, NULL);
+	tid = clone(start_function, stackTop, SIGCHLD, NULL);
 
 	if ( tid < 0 ) {
         printf("ERROR: Unable to create the child process.\n");
@@ -82,10 +83,10 @@ int thread_join(thread_t thread, void **retval) {
 
 
 /*for testing only*/
-int fn() {
+void *fn(void *arg) {
    printf("\nINFO: This code is running under child process.\n");
 
-   return 0;
+   return NULL;
 }
 
 int main() {
@@ -93,6 +94,7 @@ int main() {
 	thread_t tid;
 
 	thread_create(&tid, NULL, fn, NULL);
+	printf("%p\n", thread_l_head);
 	
 	return 0;
 }
