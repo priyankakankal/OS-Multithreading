@@ -66,6 +66,7 @@ int thread_create(thread_t *t, const thread_attr_t * attr, void * (*start_functi
 	addthread_l(child_thread);
 
 	tid = clone(start_function, stackTop, SIGCHLD, NULL);
+	printf("%d\n", tid);
 
 	if ( tid < 0 ) {
         printf("ERROR: Unable to create the child process.\n");
@@ -74,6 +75,7 @@ int thread_create(thread_t *t, const thread_attr_t * attr, void * (*start_functi
 
 
 	child_thread->tid = tid;
+	*t = tid;
 	
 	return 0;
 }
@@ -92,9 +94,11 @@ void *fn(void *arg) {
 int main() {
 	printf("%p\n", thread_l_head);
 	thread_t tid;
+	printf("%d\n", tid);
 
 	thread_create(&tid, NULL, fn, NULL);
 	printf("%p\n", thread_l_head);
+	printf("%d\n", tid);
 	
 	return 0;
 }
