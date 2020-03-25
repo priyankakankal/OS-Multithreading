@@ -10,7 +10,7 @@
 #define RUNNING 0
 #define READY 	1 /* Ready to be scheduled */
 #define BLOCKED 2 /* Waiting on Join */
-#define DEFUNCT 3 /* Dead */
+#define DEAD 3 /* Dead */
 
 typedef pid_t thread_t;
 
@@ -39,6 +39,8 @@ int thread_create(thread_t *t, const thread_attr_t * attr, void * (*start_functi
 int thread_join(thread_t thread, void **retval);
 
 void thread_exit(void *retval);
+
+thread_t thread_self(void);
 /*
 
 thread_lock(); // a spinlock
@@ -52,23 +54,9 @@ thread_kill();
 thread_struct *thread_l_head;
 
 /*
-	Internal thread function
+	Internal thread functions
 */
-void addthread_l(thread_struct *node) {
-	thread_struct *tmp;
+void addthread_l(thread_struct *node);
+thread_struct * search_thread(thread_t tid);
 
-	if(thread_l_head == NULL) {
-		thread_l_head = node;
-		node->next = node->prev = node;
-		return;
-	}
-
-
-	thread_l_head->prev->next = node;
-	node->prev = thread_l_head->prev;
-	node->next = thread_l_head;
-	thread_l_head->prev = node;
-
-	return;
-}
 

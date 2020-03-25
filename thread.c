@@ -15,6 +15,50 @@
 #include "thread.h"
 
 
+void addthread_l(thread_struct *node) {
+	thread_struct *tmp;
+
+	if(thread_l_head == NULL) {
+		thread_l_head = node;
+		node->next = node->prev = node;
+		return;
+	}
+
+
+	thread_l_head->prev->next = node;
+	node->prev = thread_l_head->prev;
+	node->next = thread_l_head;
+	thread_l_head->prev = node;
+
+	return;
+}
+
+
+// Get thread_structure from thread_t
+thread_struct * search_thread(thread_t tid) {
+	thread_struct *tmp;
+
+	if(!thread_l_head) {
+		perror("No threads created");
+		return NULL;
+	}
+
+	if(thread_l_head->tid == tid)
+		return thread_l_head;
+
+	tmp = thread_l_head->next;
+
+	while(tmp != thread_l_head) {
+		if(tmp->tid == tid)
+			return tmp;
+		tmp = tmp->next;
+	}
+
+	return NULL;
+
+}
+
+
 int thread_create(thread_t *t, const thread_attr_t * attr, void * (*start_function)(void *), void *arg) {
 	//one-one and many-one model
 
@@ -66,7 +110,6 @@ int thread_create(thread_t *t, const thread_attr_t * attr, void * (*start_functi
 	addthread_l(child_thread);
 
 	tid = clone(start_function, stackTop, SIGCHLD, NULL);
-	printf("%d\n", tid);
 
 	if ( tid < 0 ) {
         printf("ERROR: Unable to create the child process.\n");
@@ -81,24 +124,15 @@ int thread_create(thread_t *t, const thread_attr_t * attr, void * (*start_functi
 }
 
 int thread_join(thread_t thread, void **retval) {
+	thread_struct *this_thread, *waitfor_thread;
+
+	waitfor_thread = search_thread(thread);
 }
 
+thread_t thread_self(void) {
+	thread_t self_tid;
 
-/*for testing only*/
-void *fn(void *arg) {
-   printf("\nINFO: This code is running under child process.\n");
+	self_tid = (pid_t) syscall(SYS_gettid);
 
-   return NULL;
-}
-
-int main() {
-	printf("%p\n", thread_l_head);
-	thread_t tid;
-	printf("%d\n", tid);
-
-	thread_create(&tid, NULL, fn, NULL);
-	printf("%p\n", thread_l_head);
-	printf("%d\n", tid);
-	
-	return 0;
+	return self_tid;
 }
