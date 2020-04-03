@@ -17,7 +17,6 @@
 /* Add thread_struct to the list of TCB
 */
 void addthread_l(thread_struct *node) {
-	thread_struct *tmp;
 
 	if(thread_l_head == NULL) {
 		thread_l_head = node;
@@ -30,7 +29,6 @@ void addthread_l(thread_struct *node) {
 	node->prev = thread_l_head->prev;
 	node->next = thread_l_head;
 	thread_l_head->prev = node;
-
 	return;
 }
 
@@ -49,10 +47,11 @@ thread_struct * search_thread(thread_t tid) {
 		return thread_l_head;
 
 	tmp = thread_l_head->next;
-
+	
 	while(tmp != thread_l_head) {
-		if(tmp->tid == tid)
+		if(tmp->tid == tid) {
 			return tmp;
+		}
 		tmp = tmp->next;
 	}
 
@@ -63,21 +62,21 @@ thread_struct * search_thread(thread_t tid) {
 /* Create TCB for main thread to list of threads
 */
 int addmain_thread(void) {
-	thread_struct *main;
-	main = (thread_struct *)malloc(sizeof(thread_struct));
-	if (main == NULL ) {
+	thread_struct *m;
+	m = (thread_struct *)malloc(sizeof(thread_struct));
+	if (m == NULL ) {
 		perror("ERROR: Unable to allocate memory for main thread.\n");
 		return errno;
 	}
 
-	main->start_func = NULL;
-	main->arg = NULL;
-	main->state = READY;
-	main->returnValue = NULL;
-	main->blockedForJoin = NULL;
-	main->tid = thread_self();
+	m->start_func = NULL;
+	m->arg = NULL;
+	m->state = READY;
+	m->returnValue = NULL;
+	m->blockedForJoin = NULL;
+	m->tid = thread_self();
 
-	addthread_l(main);
+	addthread_l(m);
 	return 0;
 }
 
@@ -135,12 +134,15 @@ int thread_create(thread_t *t, const thread_attr_t * attr, void * (*start_functi
 	child_thread->state = READY;
 	child_thread->returnValue = NULL;
 	child_thread->blockedForJoin = NULL;
+	child_thread->tid = thread_l_head->prev->tid + 1;
 
 	/* Add created thread_struct to list of thread blocks
 	*/
 	addthread_l(child_thread);
 
-	tid = clone(start_function, stackTop, SIGCHLD, NULL);
+
+	tid = clone(start_function, stackTop, CLONE_VM | SIGCHLD, NULL);
+
 
 	if ( tid < 0 ) {
         printf("ERROR: Unable to create the child process.\n");
@@ -172,7 +174,7 @@ void thread_sched(void) {
 
 int thread_join(thread_t thread, void **retval) {
 	thread_struct *this_thread, *waitfor_thread;
-
+	thread_t t;
 	waitfor_thread = search_thread(thread);
 	this_thread = search_thread(thread_self());
 
@@ -191,17 +193,34 @@ int thread_join(thread_t thread, void **retval) {
 		return -1;
 
 	waitfor_thread->blockedForJoin = this_thread;
-	printf("Join: Setting state of %ld to %d\n",(unsigned long)this_thread->tid, BLOCKED);
+	printf("Join: Setting state of %ld to %d\n",(unsigned long)this_thread->tid, thread);
 	this_thread->state = BLOCKED;
 
-	/* Schedule another thread
+	/* Schedule another thread, 
 	*/
-	thread_sched();
+	//thread_sched(); 
+	//if not one-one
+	t = waitpid(thread, NULL, 0);
 
+	if(t == -1)
+		perror("thread has exited\n");
 
 	/* Target thread died, collect return value and return */
 	*retval = waitfor_thread->returnValue;
 	return 0;
+}
+
+void thread_exit(void *retval) {
+	thread_struct *this_thread;
+	this_thread = search_thread(thread_self());
+	this_thread->returnValue = retval;
+
+	if(this_thread->blockedForJoin != NULL)
+		this_thread->blockedForJoin->state = READY;
+
+	this_thread->state = DEAD;
+
+	//syscall(SYS_exit, 0);
 }
 
 

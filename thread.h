@@ -27,7 +27,7 @@ typedef struct thread_struct {
 	void *arg; 			/* The arguments to be passed to the thread function. */
 	void *returnValue; 			/* The return value that thread returns. */
 	struct thread_struct *blockedForJoin; 	/* Thread blocking on this thread */
-	struct thread_struct *prev, *next; 
+	struct thread_struct *prev, *next;
 } thread_struct;
 
 
@@ -52,6 +52,8 @@ thread_kill();
 
 // Global pointer to the head node in the queue of Thread Structure
 thread_struct *thread_l_head;
+
+thread_struct *readyqueue;
 
 /*
 	Internal thread functions
