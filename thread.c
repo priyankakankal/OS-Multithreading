@@ -80,6 +80,14 @@ int addmain_thread(void) {
 	return 0;
 }
 
+int newfn(void *thread) {
+	thread_struct *newt;
+	newt = (thread_struct *)thread;
+
+	newt->start_func(newt->arg);
+
+	return 0;
+}
 
 int thread_create(thread_t *t, const thread_attr_t * attr, void * (*start_function)(void *), void *arg) {
 	//one-one and many-one model
@@ -141,7 +149,7 @@ int thread_create(thread_t *t, const thread_attr_t * attr, void * (*start_functi
 	addthread_l(child_thread);
 
 
-	tid = clone(start_function, stackTop, CLONE_VM | SIGCHLD, NULL);
+	tid = clone(newfn, stackTop, CLONE_VM | SIGCHLD, child_thread);
 
 
 	if ( tid < 0 ) {
@@ -152,7 +160,6 @@ int thread_create(thread_t *t, const thread_attr_t * attr, void * (*start_functi
 
 	child_thread->tid = tid;
 	*t = tid;
-	
 	return 0;
 }
 

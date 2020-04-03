@@ -1,41 +1,39 @@
-#define _GNU_SOURCE
-#include <sys/wait.h>
-#include <sys/utsname.h>
-#include <sched.h>
-#include <string.h>
+#include "thread.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
-#include <malloc.h>
-#include <signal.h>
-#include <errno.h>
-#include <sys/syscall.h>
-#include <sys/types.h>
-#include <sys/wait.h>
-#include "thread.h"
 
-void * fn(void *arg){
-  int i = 100;
-  //printf("into thread\n");
-  
-  printf("%d Calling thread_exit\n", thread_self());
-  thread_exit(&i);
+int sum[16];
+
+void *add(void *arg) {
+  int *t = (int *)arg, j, index;
+  index = t[2];
+  sum[index] = 0;
+  for(j = t[0]; j <= t[1]; j++) {
+    sum[index] += j;
+  }
+  thread_exit(&(sum[index]));
   return NULL;
 }
 
+int main(int argc, char *argv[]) {
+  thread_t tid[16];
+  int *res[16], sum = 0;
+  int i, n ,m;
+  int d[16][3];
 
-int main() {
-  thread_t tid, pid;
-  int *status1 = NULL, *status2 = NULL;
+  n = atoi(argv[1]);
+  m = atoi(argv[2]);
 
-  printf("in test1\n");
-  
-  thread_create(&tid, NULL, &fn, NULL);
-  thread_create(&pid, NULL, &fn, NULL);
+  for(i = 0; i < m; i++) {
+    d[i][0] = i * (n/m) + 1;
+    d[i][1] = (i + 1) * (n/m);
+    d[i][2] = i;
+    thread_create(&tid[i], NULL, add, d[i]);  }
 
-  thread_join(tid, (void **) &status1);
-  thread_join(pid, (void **) &status2);
-
-  printf("%d %d\n", *status1, *status2);
+  for(i = 0; i < m; i++) {
+    thread_join(tid[i], (void **) &(res[i]));
+    sum += *(res[i]);
+  }
+  printf("%d\n", sum);
   return 0;
 }
