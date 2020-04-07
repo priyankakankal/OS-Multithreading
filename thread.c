@@ -90,7 +90,7 @@ int newfn(void *thread) {
 }
 
 int thread_create(thread_t *t, const thread_attr_t * attr, void * (*start_function)(void *), void *arg) {
-	//one-one and many-one model
+	//one-one model
 
 	thread_t tid;
 	unsigned long stack_size;
@@ -230,4 +230,37 @@ void thread_exit(void *retval) {
 	//syscall(SYS_exit, 0);
 }
 
+int thread_mutex_init(thread_mutex_t *mutex, const thread_mutexattr_t *mutexattr) {
+	mutex->mut_lock = 0;
+	return 0;
+}
+
+int test(thread_mutex_t *mutex) {
+	if(mutex->mut_lock == 0) 
+		return 0;
+	else 
+		return 1;
+}
+
+int thread_mutex_lock(thread_mutex_t *mutex) {
+	while(test(mutex) != 0);
+	mutex->mut_lock = 1;
+	return 0;
+}
+	
+int thread_mutex_unlock(thread_mutex_t *mutex) {
+	mutex->mut_lock = 0;
+	return 0;
+}
+
+int thread_kill(thread_t thread, int sig) {
+	//printf("inside kill\n");
+	int tid, ret;
+	thread_struct *this_thread;
+	this_thread = search_thread(thread);
+	tid = (unsigned long)this_thread->tid;
+	ret = syscall(SYS_tkill, tid, sig);
+	printf("kill returns: %d\n", ret);
+	return errno;
+}
 

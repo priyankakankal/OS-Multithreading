@@ -2,6 +2,7 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include<string.h>
+#include <errno.h>
 
 #define FALSE 0
 #define TRUE 1
@@ -31,6 +32,16 @@ typedef struct thread_struct {
 } thread_struct;
 
 
+/*spinlock mutex structure*/
+typedef struct thread_mutex_t {
+	int mut_lock;
+}thread_mutex_t;
+
+/*mutex attributes structure*/
+typedef struct thread_mutexattr_t {
+}thread_mutexattr_t;
+
+
 /*
 	Thread library interface for user
 */
@@ -45,9 +56,17 @@ thread_t thread_self(void);
 
 thread_lock(); // a spinlock
 thread_unlock();  // spin-unlock
-thread_kill();
-
 */
+
+int thread_mutex_init(thread_mutex_t *mutex, const thread_mutexattr_t *mutexattr);
+
+int test(thread_mutex_t *mutex);
+
+int thread_mutex_lock(thread_mutex_t *mutex);
+
+int thread_mutex_unlock(thread_mutex_t *mutex);
+
+int thread_kill(thread_t threads, int sig);
 
 
 // Global pointer to the head node in the queue of Thread Structure
