@@ -20,18 +20,6 @@ typedef struct thread_attr_t {
 } thread_attr_t;
 
 
-/*Thread Control Block structure */
-typedef struct thread_struct {
-	thread_t tid; 			/* The thread-id of the thread */
-	int state; 			/* the state in which the corresponding thread will be. */
-	void * (*start_func) (void *); 	/* The func pointer to the thread function to be executed. */
-	void *arg; 			/* The arguments to be passed to the thread function. */
-	void *returnValue; 			/* The return value that thread returns. */
-	struct thread_struct *blockedForJoin; 	/* Thread blocking on this thread */
-	struct thread_struct *prev, *next;
-} thread_struct;
-
-
 /*spinlock mutex structure*/
 typedef struct thread_mutex_t {
 	int mut_lock;
@@ -68,16 +56,5 @@ int thread_mutex_unlock(thread_mutex_t *mutex);
 
 int thread_kill(thread_t threads, int sig);
 
-
-// Global pointer to the head node in the queue of Thread Structure
-thread_struct *thread_l_head;
-
-thread_struct *readyqueue;
-
-/*
-	Internal thread functions
-*/
-void addthread_l(thread_struct *node);
-thread_struct * search_thread(thread_t tid);
 
 

@@ -12,7 +12,31 @@
 #include <sys/syscall.h>
 #include <sys/types.h>
 #include <sys/wait.h>
-#include "thread.h"
+#include "../thread.h"
+
+/*Thread Control Block structure */
+typedef struct thread_struct {
+	thread_t tid; 			/* The thread-id of the thread */
+	int state; 			/* the state in which the corresponding thread will be. */
+	void * (*start_func) (void *); 	/* The func pointer to the thread function to be executed. */
+	void *arg; 			/* The arguments to be passed to the thread function. */
+	void *returnValue; 			/* The return value that thread returns. */
+	struct thread_struct *blockedForJoin; 	/* Thread blocking on this thread */
+	struct thread_struct *prev, *next;
+} thread_struct;
+
+
+// Global pointer to the head node in the queue of Thread Structure
+thread_struct *thread_l_head;
+
+thread_struct *readyqueue;
+
+/*
+	Internal thread functions
+*/
+void addthread_l(thread_struct *node);
+thread_struct * search_thread(thread_t tid);
+
 
 /* Add thread_struct to the list of TCB
 */
