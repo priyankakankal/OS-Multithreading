@@ -15,22 +15,22 @@
 #include <ucontext.h>
 #include "../thread.h"
 
+int a =100;
+int b = 200;
 void * fn1(void *arg){
-  int i = 100;
 
   printf("into thread1\n");
 
-  thread_exit(&i);
+  thread_exit(&a);
   
   return NULL;
 }
 
 void * fn2(void *arg){
-  int i = 200;
 
   printf("into thread2\n");
 
-  thread_exit(&i);
+  thread_exit(&b);
   
   return NULL;
 }
@@ -43,9 +43,10 @@ int main() {
   thread_create(&pid, NULL, &fn2, NULL);
   printf("%d %d %d\n", thread_self(), tid, pid);
 
-  //thread_join(tid, (void **) &status1);
-  //thread_join(pid, (void **) &status2);
+  thread_join(tid, (void **) &status1);
+  //printf("%d return value\n", *status1);
+  thread_join(pid, (void **) &status2);
 
-  //printf("%d %d\n", *status1, *status2);
+  printf("%d %d\n", *status1, *status2);
   return 0;
 }

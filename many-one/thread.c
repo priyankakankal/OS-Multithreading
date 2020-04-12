@@ -134,17 +134,29 @@ int addmain_thread(void) {
 thread_struct * findnext_ready(void) {
 	thread_t t = currently_running->tid;
 	ready_thread *tmp = readyqueue;
-	if(!tmp)
+	if(!tmp) {
+		//printf("No thread in readyqueue\n");
 		return NULL;
+	}
 
+	//printf("In findnext\n");
+	//printf("%d\n", t);
+	//printf("currently_running: %d\n", currently_running->tid);
 	do {
+		//printf("abc\n");
+		//printf("loop: %d\n", tmp->tid);
 		if(tmp->tid == t) {
+			//printf("dgdsfg\n");
+			//printf("found %d %d\n", t, tmp->next->tid);
 			return search_thread(tmp->next->tid);
 		}
+		//printf("%p\n", tmp->next);
 		tmp = tmp->next;
+		//printf("xyz\n");
 	} while(tmp != readyqueue);
 
-	return NULL;
+	//printf("out of loop\n");
+	return search_thread(readyqueue->tid);
 }
 
 void removefrom_ready(thread_struct *thread) {
@@ -191,7 +203,7 @@ void scheduler(){
 	//printf("%p\n", t->buf);
 	
 	if (setjmp(currently_running->buf)) {
-		printf("Again in main\n");
+		printf("In scheduler %d\n", currently_running->tid);
   	}
     else
     {
@@ -233,6 +245,7 @@ int thread_create(thread_t *t, const thread_attr_t * attr, void * (*start_functi
 		}
 
 		currently_running = thread_l_head;
+		printf("Main: %d\n", currently_running->tid);
 
 	}
 
@@ -270,7 +283,7 @@ int thread_create(thread_t *t, const thread_attr_t * attr, void * (*start_functi
 	//pause();
 
 	if (setjmp(currently_running->buf)) {
-		printf("Again in main\n");
+		printf("In create %d\n", currently_running->tid);
   	}
     else
     {
@@ -284,16 +297,16 @@ int thread_create(thread_t *t, const thread_attr_t * attr, void * (*start_functi
 
 int thread_join(thread_t thread, void **retval) {
 	thread_struct *this_thread, *waitfor_thread;
-
 	waitfor_thread = search_thread(thread);
 	this_thread = currently_running;
 
-	printf("into join %d\n", waitfor_thread->tid);
+	//printf("into join %d\n", waitfor_thread->tid);
 
 	/* If the thread is already dead, no need to wait. Just collect the return
 	 * value and exit
 	 */
 	if (waitfor_thread->state == DEAD) {
+		printf("%d DEAD\n", waitfor_thread->tid);
 		*retval = waitfor_thread->returnValue;
 		return 0;
 	}
@@ -308,30 +321,38 @@ int thread_join(thread_t thread, void **retval) {
 	printf("Join: Setting state of %ld to %d\n",(unsigned long)this_thread->tid, thread);
 	this_thread->state = BLOCKED;
 
+	printf("Removing %d from ready queue and adding to blockedForJoin of %d\n", this_thread->tid, waitfor_thread->tid);
 	removefrom_ready(this_thread);
-	scheduler();
+	//scheduler();
 
 	/* Target thread died, collect return value and return */
 	*retval = waitfor_thread->returnValue;
-
+		
 	return 0;
 }
 
 void thread_exit(void *retval) {
 	thread_struct *this_thread;
+
+	
 	this_thread = currently_running;
 	this_thread->returnValue = retval;
 
 	printf("in exit %d\n", currently_running->tid);
+	printf("Blocked for join: %p\n", this_thread->blockedForJoin);
+
 	if(this_thread->blockedForJoin != NULL) {
 		this_thread->blockedForJoin->state = READY;
+		printf("Add to ready: %d\n",this_thread->blockedForJoin->tid);
 		addthread_to_ready(this_thread->blockedForJoin->tid);
 	}
 
 	this_thread->state = DEAD;
 
-	
-	removefrom_ready(this_thread);
 	currently_running = findnext_ready();
+	removefrom_ready(this_thread);
+	//printf("in exit of %d, currently_running %d\n", this_thread->tid, currently_running->tid);
+	
+	//printf("in exit of %d, currently_running %d", this_thread->tid, currently_running->tid);
 
 }
