@@ -20,8 +20,9 @@ thread_attr_lock mutexattr;
 
 int a =100;
 int b = 200;
+
 void * fn1(void *arg){
-thread_lock(&lock);
+  thread_lock(&lock);
   printf("\ninto thread1\n");
   thread_exit(&a);
  //thread_unlock(&lock);
@@ -29,7 +30,7 @@ thread_lock(&lock);
 }
 
 void * fn2(void *arg){
-thread_lock(&lock);
+  thread_lock(&lock);
   printf("\ninto thread2\n");
   thread_exit(&b);
   
@@ -49,16 +50,14 @@ int main() {
 
   thread_create(&pid, NULL, &fn2, NULL);
   printf("%d %d %d\n", thread_self(), tid, pid);
-if(ret != 0) {
-  thread_join(tid, (void **) &status1);
-thread_join(pid, (void **) &status2);
-printf("%d %d\n", *status1, *status2);
-}
-else 
-	printf("Error: Thread1 terminated\n");
-  //printf("%d return value\n", *status1);
-  
 
+  if(ret != 0) {
+    thread_join(tid, (void **) &status1);
+    thread_join(pid, (void **) &status2);
+    printf("%d %d\n", *status1, *status2);
+  }
+  else 
+    printf("Error: Thread1 terminated\n");
   
   return 0;
 }
