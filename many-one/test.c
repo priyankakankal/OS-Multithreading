@@ -17,36 +17,35 @@
 
 int a =100;
 int b = 200;
-void * fn1(void *arg){
+void * fn1(void *arg) {
+	printf("into thread1\n");
 
-  printf("into thread1\n");
+	thread_exit(&a);
 
-  thread_exit(&a);
-  
-  return NULL;
+	return NULL;
 }
 
-void * fn2(void *arg){
+void * fn2(void *arg) {
+	printf("into thread2\n");
+	thread_exit(&b);
 
-  printf("into thread2\n");
-
-  thread_exit(&b);
-  
-  return NULL;
+	return NULL;
 }
 
 int main() {
-  thread_t tid, pid;
-  int *status1 = NULL, *status2 = NULL;
+	thread_t tid, pid;
+	int *status1 = NULL, *status2 = NULL;
 
-  thread_create(&tid, NULL, &fn1, NULL);
-  thread_create(&pid, NULL, &fn2, NULL);
-  printf("%d %d %d\n", thread_self(), tid, pid);
+	thread_create(&tid, NULL, &fn1, NULL);
+	thread_create(&pid, NULL, &fn2, NULL);
+	printf("%d %d %d\n", thread_self(), tid, pid);
 
-  thread_join(tid, (void **) &status1);
-  //printf("%d return value\n", *status1);
-  thread_join(pid, (void **) &status2);
+	thread_join(tid, (void **) &status1);
 
-  printf("%d %d\n", *status1, *status2);
-  return 0;
+	thread_join(pid, (void **) &status2);
+
+	//thread_kill(tid, SIGKILL);
+
+	printf("%d %d\n", *status1, *status2);
+	return 0;
 }

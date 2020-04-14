@@ -11,6 +11,7 @@
 #include <errno.h>
 #include <sys/syscall.h>
 #include <sys/types.h>
+#include <sys/time.h>
 #include <sys/wait.h>
 #include<setjmp.h>
 #include "../thread.h"
@@ -40,7 +41,10 @@ ready_thread *readyqueue;
 
 thread_struct *currently_running;
 
+int flag = 0;
 
+struct sigaction action;
+struct itimerval timer;
 
 void addthread_to_ready(thread_t tid) {
 	ready_thread *tmp;
@@ -124,9 +128,6 @@ int addmain_thread(void) {
 	m->returnValue = NULL;
 	m->blockedForJoin = NULL;
 	m->tid = thread_self();
-	//printf("%d\n", m->tid);
-	//m->stackTop = NULL;
-
 	addthread_l(m);
 	return 0;
 }
@@ -135,27 +136,16 @@ thread_struct * findnext_ready(void) {
 	thread_t t = currently_running->tid;
 	ready_thread *tmp = readyqueue;
 	if(!tmp) {
-		//printf("No thread in readyqueue\n");
 		return NULL;
 	}
 
-	//printf("In findnext\n");
-	//printf("%d\n", t);
-	//printf("currently_running: %d\n", currently_running->tid);
 	do {
-		//printf("abc\n");
-		//printf("loop: %d\n", tmp->tid);
 		if(tmp->tid == t) {
-			//printf("dgdsfg\n");
-			//printf("found %d %d\n", t, tmp->next->tid);
 			return search_thread(tmp->next->tid);
 		}
-		//printf("%p\n", tmp->next);
 		tmp = tmp->next;
-		//printf("xyz\n");
 	} while(tmp != readyqueue);
 
-	//printf("out of loop\n");
 	return search_thread(readyqueue->tid);
 }
 
@@ -166,7 +156,6 @@ void removefrom_ready(thread_struct *thread) {
 
 	do {
 		if(tmp->tid == thread->tid) {
-			//remove node pointed by tmp
 			if(readyqueue == tmp) {
 				if(readyqueue->next == readyqueue) {
 					tmp->next = tmp->prev = NULL;
@@ -196,44 +185,31 @@ void removefrom_ready(thread_struct *thread) {
 
 /*Alarm handler*/
 void scheduler(){
-	printf("\nBuzz!\n");
-
 	thread_struct *n;
-	//t = search_thread(currently_running->tid);
-	//printf("%p\n", t->buf);
 	
 	if (setjmp(currently_running->buf)) {
-		printf("In scheduler %d\n", currently_running->tid);
-  	}
-    else
-    {
-    	n = findnext_ready();
-    	currently_running = n;
-    	ualarm(10, 0);
-        longjmp(n->buf, 1);
-    }
-	
-	//alarm(1);
+		//printf("In scheduler %d\n", currently_running->tid);
+  	} else {
+		n = findnext_ready();
+		currently_running = n;
+		longjmp(n->buf, 1);
+	}
+
 }
 int thread_create(thread_t *t, const thread_attr_t * attr, void * (*start_function)(void *), void *arg) {
-	//one-one and many-one model
-
-	//unsigned long stack_size;
-	//char *tchild_stack; // Pointer to stack of child thread
-	//char *stackTop;
 	thread_struct *child_thread;
 	int ret;
-	printf("into create\n");
-	//jmp_buf buf;
 
 	if(!thread_l_head) {
 		/* first create call
 			Add main thread
 		*/
-		struct sigaction action;
+
+		memset(&action, 0, sizeof(action));
+
 		action.sa_handler = scheduler;
-		action.sa_flags = SA_RESTART; //<-- restart 
-		sigaction(SIGALRM, &action, NULL);
+
+		sigaction(SIGVTALRM, &action, NULL);
 
 	
 		ret = addmain_thread();
@@ -245,12 +221,8 @@ int thread_create(thread_t *t, const thread_attr_t * attr, void * (*start_functi
 		}
 
 		currently_running = thread_l_head;
-		printf("Main: %d\n", currently_running->tid);
-
 	}
 
-
-	//stackTop = tchild_stack + stack_size;
 
 	/*
 		Create thread_struct for child thread
@@ -267,7 +239,7 @@ int thread_create(thread_t *t, const thread_attr_t * attr, void * (*start_functi
 	child_thread->returnValue = NULL;
 	child_thread->blockedForJoin = NULL;
 	child_thread->tid = thread_l_head->prev->tid + 1;
-	//child_thread->stackTop = stackTop;
+
 	*t = child_thread->tid;
 	/* Add created thread_struct to list of thread blocks
 	*/
@@ -276,21 +248,27 @@ int thread_create(thread_t *t, const thread_attr_t * attr, void * (*start_functi
 
 	addthread_to_ready(child_thread->tid);
 
-	//scheduler();
-
-	
-	
-	//pause();
 
 	if (setjmp(currently_running->buf)) {
-		printf("In create %d\n", currently_running->tid);
-  	}
-    else
-    {
-    	currently_running = child_thread;
-		ualarm(10, 0);
+		//printf("In create %d\n", currently_running->tid);
+  	} else {
+		currently_running = child_thread;
+		if(!flag) {
+
+			/* Configure the timer to expire after 10 usec... */
+			timer.it_value.tv_sec = 0;
+			timer.it_value.tv_usec = 10;
+			/* ... and every 10 usec after that. */
+			timer.it_interval.tv_sec = 0;
+			timer.it_interval.tv_usec = 10;
+			
+			setitimer (ITIMER_VIRTUAL, &timer, NULL);
+
+			flag = 1;
+		}
+
 		start_function(arg);
-    }
+	}
 
 	return 0;
 }
@@ -300,13 +278,12 @@ int thread_join(thread_t thread, void **retval) {
 	waitfor_thread = search_thread(thread);
 	this_thread = currently_running;
 
-	//printf("into join %d\n", waitfor_thread->tid);
+
 
 	/* If the thread is already dead, no need to wait. Just collect the return
 	 * value and exit
 	 */
 	if (waitfor_thread->state == DEAD) {
-		printf("%d DEAD\n", waitfor_thread->tid);
 		*retval = waitfor_thread->returnValue;
 		return 0;
 	}
@@ -318,12 +295,11 @@ int thread_join(thread_t thread, void **retval) {
 		return -1;
 
 	waitfor_thread->blockedForJoin = this_thread;
-	printf("Join: Setting state of %ld to %d\n",(unsigned long)this_thread->tid, thread);
+
 	this_thread->state = BLOCKED;
 
-	printf("Removing %d from ready queue and adding to blockedForJoin of %d\n", this_thread->tid, waitfor_thread->tid);
-	removefrom_ready(this_thread);
-	//scheduler();
+
+	while(waitfor_thread->state != DEAD);
 
 	/* Target thread died, collect return value and return */
 	*retval = waitfor_thread->returnValue;
@@ -338,21 +314,45 @@ void thread_exit(void *retval) {
 	this_thread = currently_running;
 	this_thread->returnValue = retval;
 
-	printf("in exit %d\n", currently_running->tid);
-	printf("Blocked for join: %p\n", this_thread->blockedForJoin);
 
 	if(this_thread->blockedForJoin != NULL) {
 		this_thread->blockedForJoin->state = READY;
-		printf("Add to ready: %d\n",this_thread->blockedForJoin->tid);
-		addthread_to_ready(this_thread->blockedForJoin->tid);
+		//addthread_to_ready(this_thread->blockedForJoin->tid);
 	}
 
 	this_thread->state = DEAD;
 
 	currently_running = findnext_ready();
 	removefrom_ready(this_thread);
-	//printf("in exit of %d, currently_running %d\n", this_thread->tid, currently_running->tid);
-	
-	//printf("in exit of %d, currently_running %d", this_thread->tid, currently_running->tid);
+}
 
+int thread_kill(thread_t tid, int sig) {
+	thread_struct *this_thread;
+	this_thread = search_thread(tid);
+
+	if(this_thread == NULL) //tid not found
+		return ESRCH;
+
+	switch(sig) {
+		case 0: //Checks whether thread with given tid exists
+				if(this_thread != NULL)
+					return 0;
+				return -1;
+
+		case SIGSTOP:
+
+		case SIGCONT:
+
+		case SIGTERM:
+
+		case SIGHUP:
+
+		case SIGINT:
+
+		case SIGKILL:	//End entire process
+						kill(thread_l_head->tid, SIGKILL);
+
+		default:	return EINVAL;	//sig is not a valid signal number
+	}
+	return errno;
 }
