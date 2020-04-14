@@ -25,7 +25,6 @@ typedef struct thread_struct {
 	void *returnValue; 			/* The return value that thread returns. */
 	struct thread_struct *blockedForJoin; 	/* Thread blocking on this thread */
 	jmp_buf buf;
-	//char *stackTop;
 	struct thread_struct *prev, *next;
 } thread_struct;
 
@@ -312,6 +311,11 @@ void thread_exit(void *retval) {
 
 	
 	this_thread = currently_running;
+
+	if(this_thread->state == DEAD) {
+		return;
+	}
+
 	this_thread->returnValue = retval;
 
 
@@ -343,7 +347,15 @@ int thread_kill(thread_t tid, int sig) {
 
 		case SIGCONT:
 
-		case SIGTERM:
+		case SIGTERM:	//SIGTERM will cause thread to exit "cleanly"
+						if(this_thread->state == DEAD) {
+							//Terminated already
+							return 0;
+						}
+						this_thread->returnValue = NULL;
+						this_thread->state = DEAD;
+						removefrom_ready(this_thread);
+						return 0;
 
 		case SIGHUP:
 

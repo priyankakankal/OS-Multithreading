@@ -31,12 +31,6 @@ thread_struct *thread_l_head;
 
 thread_struct *readyqueue;
 
-/*
-	Internal thread functions
-*/
-void addthread_l(thread_struct *node);
-thread_struct * search_thread(thread_t tid);
-
 
 /* Add thread_struct to the list of TCB
 */
@@ -114,7 +108,6 @@ int newfn(void *thread) {
 }
 
 int thread_create(thread_t *t, const thread_attr_t * attr, void * (*start_function)(void *), void *arg) {
-	//one-one model
 
 	thread_t tid;
 	unsigned long stack_size;
@@ -146,7 +139,7 @@ int thread_create(thread_t *t, const thread_attr_t * attr, void * (*start_functi
 
 	tchild_stack = malloc(stack_size);
 	if ( tchild_stack == NULL ) {
-		printf("ERROR: Unable to allocate memory for stack.\n");
+		perror("ERROR: Unable to allocate memory for stack.\n");
 		return errno;
 	}
 
@@ -197,11 +190,6 @@ thread_t thread_self(void) {
 	return self_tid;
 }
 
-/* Schedule next ready thread
-*/
-void thread_sched(void) {
-
-}
 
 int thread_join(thread_t thread, void **retval) {
 	thread_struct *this_thread, *waitfor_thread;
@@ -224,13 +212,8 @@ int thread_join(thread_t thread, void **retval) {
 		return -1;
 
 	waitfor_thread->blockedForJoin = this_thread;
-	printf("Join: Setting state of %ld to %d\n",(unsigned long)this_thread->tid, thread);
 	this_thread->state = BLOCKED;
 
-	/* Schedule another thread, 
-	*/
-	//thread_sched(); 
-	//if not one-one
 	t = waitpid(thread, NULL, 0);
 
 	if(t == -1)
@@ -250,41 +233,37 @@ void thread_exit(void *retval) {
 		this_thread->blockedForJoin->state = READY;
 
 	this_thread->state = DEAD;
-
-	//syscall(SYS_exit, 0);
 }
 
-int thread_mutex_init(thread_mutex_t *mutex, const thread_mutexattr_t *mutexattr) {
+int thread_lock_init(thread_lock_t *mutex, const thread_attr_lock *mutexattr) {
 	mutex->mut_lock = 0;
 	return 0;
 }
 
-int test(thread_mutex_t *mutex) {
+int test(thread_lock_t *mutex) {
 	if(mutex->mut_lock == 0) 
 		return 0;
 	else 
 		return 1;
 }
 
-int thread_mutex_lock(thread_mutex_t *mutex) {
+int thread_lock(thread_lock_t *mutex) {
 	while(test(mutex) != 0);
 	mutex->mut_lock = 1;
 	return 0;
 }
 	
-int thread_mutex_unlock(thread_mutex_t *mutex) {
+int thread_unlock(thread_lock_t *mutex) {
 	mutex->mut_lock = 0;
 	return 0;
 }
 
 int thread_kill(thread_t thread, int sig) {
-	//printf("inside kill\n");
-	int tid, ret;
+	int tid;
 	thread_struct *this_thread;
 	this_thread = search_thread(thread);
 	tid = (unsigned long)this_thread->tid;
-	ret = syscall(SYS_tkill, tid, sig);
-	printf("kill returns: %d\n", ret);
+	syscall(SYS_tkill, tid, sig);
+
 	return errno;
 }
-

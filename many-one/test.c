@@ -20,6 +20,8 @@ int b = 200;
 void * fn1(void *arg) {
 	printf("into thread1\n");
 
+	//thread_kill(thread_self() + 1, SIGTERM);
+
 	thread_exit(&a);
 
 	return NULL;

@@ -21,13 +21,13 @@ typedef struct thread_attr_t {
 
 
 /*spinlock mutex structure*/
-typedef struct thread_mutex_t {
+typedef struct thread_lock_t {
 	int mut_lock;
-}thread_mutex_t;
+}thread_lock_t;
 
 /*mutex attributes structure*/
-typedef struct thread_mutexattr_t {
-}thread_mutexattr_t;
+typedef struct thread_attr_lock {
+}thread_attr_lock;
 
 
 /*
@@ -40,21 +40,15 @@ int thread_join(thread_t thread, void **retval);
 void thread_exit(void *retval);
 
 thread_t thread_self(void);
-/*
 
-thread_lock(); // a spinlock
-thread_unlock();  // spin-unlock
-*/
+int thread_lock_init(thread_lock_t *mutex, const thread_attr_lock *mutexattr);
 
-int thread_mutex_init(thread_mutex_t *mutex, const thread_mutexattr_t *mutexattr);
+int test(thread_lock_t *mutex);
 
-int test(thread_mutex_t *mutex);
+int thread_lock(thread_lock_t *mutex);
 
-int thread_mutex_lock(thread_mutex_t *mutex);
-
-int thread_mutex_unlock(thread_mutex_t *mutex);
+int thread_unlock(thread_lock_t *mutex);
 
 int thread_kill(thread_t threads, int sig);
-
 
 
