@@ -22,15 +22,12 @@ typedef struct thread_struct {
 	void *arg; 			/* The arguments to be passed to the thread function. */
 	void *returnValue; 			/* The return value that thread returns. */
 	struct thread_struct *blockedForJoin; 	/* Thread blocking on this thread */
-	struct thread_struct *prev, *next;
+	struct thread_struct *prev, *next;	/* Pointers to next and previous TCB */
 } thread_struct;
 
 
 // Global pointer to the head node in the queue of Thread Structure
 thread_struct *thread_l_head;
-
-thread_struct *readyqueue;
-
 
 /* Add thread_struct to the list of TCB
 */
@@ -266,6 +263,5 @@ int thread_kill(thread_t thread, int sig) {
 	this_thread = search_thread(thread);
 	tid = (unsigned long)this_thread->tid;
 	syscall(SYS_tkill, tid, sig);
-	//kill(tid, sig);
 	return errno;
 }

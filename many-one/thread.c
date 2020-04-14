@@ -24,8 +24,8 @@ typedef struct thread_struct {
 	void *arg; 			/* The arguments to be passed to the thread function. */
 	void *returnValue; 			/* The return value that thread returns. */
 	struct thread_struct *blockedForJoin; 	/* Thread blocking on this thread */
-	jmp_buf buf;
-	struct thread_struct *prev, *next;
+	jmp_buf buf;			/* To save the context of thread */
+	struct thread_struct *prev, *next;	/* Pointers to next and previous TCB */
 } thread_struct;
 
 typedef struct ready_thread {
@@ -187,7 +187,6 @@ void scheduler(){
 	thread_struct *n;
 	
 	if (setjmp(currently_running->buf)) {
-		//printf("In scheduler %d\n", currently_running->tid);
   	} else {
 		n = findnext_ready();
 		currently_running = n;
@@ -249,7 +248,6 @@ int thread_create(thread_t *t, const thread_attr_t * attr, void * (*start_functi
 
 
 	if (setjmp(currently_running->buf)) {
-		//printf("In create %d\n", currently_running->tid);
   	} else {
 		currently_running = child_thread;
 		if(!flag) {
@@ -367,16 +365,9 @@ int thread_kill(thread_t tid, int sig) {
 					return 0;
 				return -1;
 
-		case SIGSTOP:
-				/*currently = this_thread;
-				setjmp(currently->buf);
-				removefrom_ready(this_thread);*/
-				kill(thread_l_head->tid, SIGSTOP);
+		case SIGSTOP:	kill(thread_l_head->tid, SIGSTOP);
 
-		case SIGCONT:
-				/*currently = this_thread;
-				longjmp(currently->buf, 1);*/
-				kill(thread_l_head->tid, SIGCONT);
+		case SIGCONT:	kill(thread_l_head->tid, SIGCONT);
 
 		case SIGTERM:	//SIGTERM will cause thread to exit "cleanly"
 						if(this_thread->state == DEAD) {
@@ -388,11 +379,9 @@ int thread_kill(thread_t tid, int sig) {
 						removefrom_ready(this_thread);
 						return 0;
 
-		case SIGHUP:
-				kill(thread_l_head->tid, SIGHUP);
+		case SIGHUP:	kill(thread_l_head->tid, SIGHUP);
 
-		case SIGINT:
-				kill(thread_l_head->tid, SIGINT);
+		case SIGINT:	kill(thread_l_head->tid, SIGINT);
 
 		case SIGKILL:	//End entire process
 						kill(thread_l_head->tid, SIGKILL);

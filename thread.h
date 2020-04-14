@@ -33,7 +33,7 @@ typedef struct thread_attr_lock {
 /*
 	Thread library interface for user
 */
-int thread_create(thread_t *t, const thread_attr_t * attr, void * (*start_function)(void *), void *arg); // provide option to use a desired mapping.
+int thread_create(thread_t *t, const thread_attr_t * attr, void * (*start_function)(void *), void *arg);
 
 int thread_join(thread_t thread, void **retval);
 
@@ -42,8 +42,6 @@ void thread_exit(void *retval);
 thread_t thread_self(void);
 
 int thread_lock_init(thread_lock_t *mutex, const thread_attr_lock *mutexattr);
-
-int test(thread_lock_t *mutex);
 
 int thread_lock(thread_lock_t *mutex);
 
