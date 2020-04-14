@@ -2,9 +2,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <signal.h> 
-#include <unistd.h>
 
 int sum[16];
+
 thread_lock_t lock;
 
 thread_attr_lock mutexattr;
@@ -18,7 +18,7 @@ void *add(void *arg) {
     sum[index] += j;
   }
   thread_unlock(&lock);
-  thread_exit(&(sum[index]));	
+  thread_exit(&(sum[index]));
   return NULL;
 }
 
@@ -27,6 +27,7 @@ int main(int argc, char *argv[]) {
   int *res[16], sum = 0;
   int i, n ,m;
   int d[16][3];
+
   thread_lock_init(&lock, NULL);
 
   n = atoi(argv[1]);
@@ -38,13 +39,6 @@ int main(int argc, char *argv[]) {
     d[i][2] = i;
     thread_create(&tid[i], NULL, add, d[i]);
   }
-  
-  if(thread_kill(tid[0], SIGSTOP) == 0)
-	printf("thread suspended\n");
-  //printf("%s\n", strerror(errno));
-  sleep(5);
-  if(thread_kill(tid[0], SIGCONT) == 0)
-	printf("thread execution resumed\n");
   
   for(i = 0; i < m; i++) {
     thread_join(tid[i], (void **) &(res[i]));

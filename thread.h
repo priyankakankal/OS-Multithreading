@@ -51,4 +51,3 @@ int thread_unlock(thread_lock_t *mutex);
 
 int thread_kill(thread_t threads, int sig);
 
-

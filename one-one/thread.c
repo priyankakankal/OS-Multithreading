@@ -201,7 +201,8 @@ int thread_join(thread_t thread, void **retval) {
 	 * value and exit
 	 */
 	if (waitfor_thread->state == DEAD) {
-		*retval = waitfor_thread->returnValue;
+		if(retval)
+			*retval = waitfor_thread->returnValue;
 		return 0;
 	}
 
@@ -220,7 +221,8 @@ int thread_join(thread_t thread, void **retval) {
 		perror("thread has exited\n");
 
 	/* Target thread died, collect return value and return */
-	*retval = waitfor_thread->returnValue;
+	if(retval)
+		*retval = waitfor_thread->returnValue;
 	return 0;
 }
 
@@ -264,6 +266,6 @@ int thread_kill(thread_t thread, int sig) {
 	this_thread = search_thread(thread);
 	tid = (unsigned long)this_thread->tid;
 	syscall(SYS_tkill, tid, sig);
-
+	//kill(tid, sig);
 	return errno;
 }

@@ -283,7 +283,8 @@ int thread_join(thread_t thread, void **retval) {
 	 * value and exit
 	 */
 	if (waitfor_thread->state == DEAD) {
-		*retval = waitfor_thread->returnValue;
+		if(retval)
+			*retval = waitfor_thread->returnValue;
 		return 0;
 	}
 
@@ -301,7 +302,8 @@ int thread_join(thread_t thread, void **retval) {
 	while(waitfor_thread->state != DEAD);
 
 	/* Target thread died, collect return value and return */
-	*retval = waitfor_thread->returnValue;
+	if(retval)
+		*retval = waitfor_thread->returnValue;
 		
 	return 0;
 }
@@ -330,10 +332,32 @@ void thread_exit(void *retval) {
 	removefrom_ready(this_thread);
 }
 
+int thread_lock_init(thread_lock_t *mutex, const thread_attr_lock *mutexattr) {
+	mutex->mut_lock = 0;
+	return 0;
+}
+
+int test(thread_lock_t *mutex) {
+	if(mutex->mut_lock == 0) 
+		return 0;
+	else 
+		return 1;
+}
+
+int thread_lock(thread_lock_t *mutex) {
+	while(test(mutex) != 0);
+	mutex->mut_lock = 1;
+	return 0;
+}
+	
+int thread_unlock(thread_lock_t *mutex) {
+	mutex->mut_lock = 0;
+	return 0;
+}
+
 int thread_kill(thread_t tid, int sig) {
 	thread_struct *this_thread;
 	this_thread = search_thread(tid);
-
 	if(this_thread == NULL) //tid not found
 		return ESRCH;
 
@@ -344,8 +368,15 @@ int thread_kill(thread_t tid, int sig) {
 				return -1;
 
 		case SIGSTOP:
+				/*currently = this_thread;
+				setjmp(currently->buf);
+				removefrom_ready(this_thread);*/
+				kill(thread_l_head->tid, SIGSTOP);
 
 		case SIGCONT:
+				/*currently = this_thread;
+				longjmp(currently->buf, 1);*/
+				kill(thread_l_head->tid, SIGCONT);
 
 		case SIGTERM:	//SIGTERM will cause thread to exit "cleanly"
 						if(this_thread->state == DEAD) {
@@ -358,8 +389,10 @@ int thread_kill(thread_t tid, int sig) {
 						return 0;
 
 		case SIGHUP:
+				kill(thread_l_head->tid, SIGHUP);
 
 		case SIGINT:
+				kill(thread_l_head->tid, SIGINT);
 
 		case SIGKILL:	//End entire process
 						kill(thread_l_head->tid, SIGKILL);
@@ -368,3 +401,4 @@ int thread_kill(thread_t tid, int sig) {
 	}
 	return errno;
 }
+
